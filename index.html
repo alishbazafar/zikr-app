@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+        content="Islamic Audio Player - Listen to Darood, Morning & Evening Azkar, Surah Al-Mulk, Ruqia Sharia, and Tasbeeh" />
+    <title>Islamic Audio Player - Zikr App</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600,700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===== GLOBAL RESET ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== APP CONTAINER ===== */
+        .app-container {
+            max-width: 420px;
+            margin: auto;
+            padding: 24px 20px 120px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== TITLE ===== */
+        .app-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== GRID LAYOUT ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* ===== CARD STYLE ===== */
+        .card {
+            background: rgba(139, 92, 246, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            min-height: 100px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 600;
+            font-size: 15px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 215, 0, 0.4);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:active {
+            transform: translateY(-2px);
+        }
+
+        .card.playing {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 8px 32px rgba(255, 215, 0, 0.6);
+            }
+        }
+
+        /* ===== AUDIO PLAYER ===== */
+        .audio-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 20px;
+            z-index: 1000;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .player-container {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .track-info {
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffd700;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            height: 20px;
+        }
+
+        .track-info.visible {
+            opacity: 1;
+        }
+
+        /* ===== TIMELINE ===== */
+        .timeline-container {
+            margin-bottom: 12px;
+        }
+
+        .timeline {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            transition: height 0.2s ease;
+        }
+
+        .timeline:hover {
+            height: 8px;
+        }
+
+        .timeline::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .timeline::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.7);
+        }
+
+        .timeline::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .timeline::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.7);
+        }
+
+        /* ===== TIME DISPLAY ===== */
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ===== CONTROLS ===== */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .control-btn {
+            background: rgba(139, 92, 246, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #ffffff;
+            font-size: 18px;
+            user-select: none;
+        }
+
+        .control-btn:hover {
+            background: rgba(139, 92, 246, 0.5);
+            border-color: rgba(255, 215, 0, 0.4);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.play-pause {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+            border-color: rgba(255, 215, 0, 0.3);
+            font-size: 20px;
+        }
+
+        .control-btn.play-pause:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* ===== NEXT BUTTON ===== */
+        .next-btn {
+            display: flex;
+            justify-content: center;
+            margin-top: 25px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .next-btn:hover {
+            opacity: 1;
+        }
+
+        .next-btn img {
+            width: 40px;
+            filter: brightness(0) invert(1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <h1 class="app-title">🕌 Zikr App</h1>
+
+        <div class="grid">
+            <div class="card" id="darood" data-name="Darood Shareef">Darood Shareef</div>
+            <div class="card" id="morning" data-name="Morning Azkar">Morning Azkar</div>
+            <div class="card" id="evening" data-name="Evening Azkar">Evening Azkar</div>
+            <div class="card" id="mulk" data-name="Surah Al-Mulk">Surah Al-Mulk</div>
+            <div class="card" id="ruqia" data-name="Ruqia Sharia">Ruqia Sharia</div>
+            <div class="card" id="tasbeeh" data-name="Tasbeeh">
+                Subhan Allah<br>Wa bi Hamdihi
+            </div>
+        </div>
+
+        <a href="index.html" class="next-btn">
+            <img src="images/icon-25.svg" alt="Next">
+        </a>
+
+    </div>
+
+    <!-- Audio Player -->
+    <div class="audio-player">
+        <div class="player-container">
+            <!-- Track Info -->
+            <div class="track-info" id="trackInfo"></div>
+
+            <!-- Timeline -->
+            <div class="timeline-container">
+                <input type="range" id="timeline" class="timeline" min="0" value="0" step="0.1">
+            </div>
+
+            <!-- Time Display -->
+            <div class="time-display">
+                <span id="currentTime">0:00</span>
+                <span id="totalTime">0:00</span>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button class="control-btn" id="rewindBtn" title="Rewind 10s" disabled>
+                    ⏪
+                </button>
+                <button class="control-btn play-pause" id="playPauseBtn" title="Play/Pause" disabled>
+                    ▶️
+                </button>
+                <button class="control-btn" id="forwardBtn" title="Forward 10s" disabled>
+                    ⏩
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== AUDIO PLAYER SETUP =====
+        const audio = new Audio();
+        let currentCardId = null;
+
+        // ===== DOM ELEMENTS =====
+        const timeline = document.getElementById('timeline');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const rewindBtn = document.getElementById('rewindBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        const totalTimeDisplay = document.getElementById('totalTime');
+        const trackInfo = document.getElementById('trackInfo');
+
+        // ===== AUDIO FILES MAP =====
+        const audioMap = {
+            darood: "./audio/darood.mp3",
+            morning: "./audio/morning.mp3",
+            evening: "./audio/evening.mp3",
+            mulk: "./audio/mulk.mp3",
+            ruqia: "./audio/ruqia.mp3",
+            tasbeeh: "./audio/tasbeeh.mp3"
+        };
+
+        // ===== UTILITY FUNCTIONS =====
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updatePlayPauseButton() {
+            if (audio.paused) {
+                playPauseBtn.textContent = '▶️';
+                playPauseBtn.title = 'Play';
+            } else {
+                playPauseBtn.textContent = '⏸️';
+                playPauseBtn.title = 'Pause';
+            }
+        }
+
+        function enableControls() {
+            playPauseBtn.disabled = false;
+            rewindBtn.disabled = false;
+            forwardBtn.disabled = false;
+        }
+
+        function updateActiveCard() {
+            // Remove active class from all cards
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('playing');
+            });
+
+            // Add active class to current card
+            if (currentCardId) {
+                const activeCard = document.getElementById(currentCardId);
+                if (activeCard) {
+                    activeCard.classList.add('playing');
+                }
+            }
+        }
+
+        // ===== UPDATE MEDIA SESSION =====
+        function updateMediaSession(trackName) {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: trackName,
+                    artist: 'Zikr App - Islamic Audio Player',
+                    album: 'Islamic Recitations',
+                    artwork: [
+                        { src: 'https://via.placeholder.com/96', sizes: '96x96', type: 'image/png' },
+                        { src: 'https://via.placeholder.com/128', sizes: '128x128', type: 'image/png' },
+                        { src: 'https://via.placeholder.com/192', sizes: '192x192', type: 'image/png' },
+                        { src: 'https://via.placeholder.com/256', sizes: '256x256', type: 'image/png' },
+                        { src: 'https://via.placeholder.com/384', sizes: '384x384', type: 'image/png' },
+                        { src: 'https://via.placeholder.com/512', sizes: '512x512', type: 'image/png' }
+                    ]
+                });
+
+                // Set up action handlers for media controls
+                navigator.mediaSession.setActionHandler('play', () => {
+                    audio.play();
+                });
+
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    audio.pause();
+                });
+
+                navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                    const skipTime = details.seekOffset || 10;
+                    audio.currentTime = Math.max(0, audio.currentTime - skipTime);
+                });
+
+                navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                    const skipTime = details.seekOffset || 10;
+                    audio.currentTime = Math.min(audio.duration, audio.currentTime + skipTime);
+                });
+
+                navigator.mediaSession.setActionHandler('seekto', (details) => {
+                    if (details.seekTime) {
+                        audio.currentTime = details.seekTime;
+                    }
+                });
+            }
+        }
+
+        // ===== CARD CLICK HANDLER =====
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', () => {
+                const id = card.id;
+                const trackName = card.getAttribute('data-name') || card.textContent.trim();
+
+                // If clicking the same card while playing, pause it
+                if (currentCardId === id && !audio.paused) {
+                    audio.pause();
+                    return;
+                }
+
+                // Load and play the selected audio
+                currentCardId = id;
+                const audioPath = audioMap[id];
+
+                audio.src = audioPath;
+
+                // Update track info immediately
+                trackInfo.textContent = trackName + ' (Loading...)';
+                trackInfo.classList.add('visible');
+
+                // Play with error handling for mobile browsers
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        trackInfo.textContent = trackName;
+                        // Update media session with track info
+                        updateMediaSession(trackName);
+                    }).catch(error => {
+                        trackInfo.textContent = trackName + ' (Failed to play)';
+                        alert('Audio playback failed: ' + error.message);
+                    });
+                }
+
+                // Enable controls
+                enableControls();
+
+                // Update active card
+                updateActiveCard();
+            });
+        });
+
+        // ===== PLAY/PAUSE BUTTON =====
+        playPauseBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+            } else {
+                audio.pause();
+            }
+        });
+
+        // ===== REWIND BUTTON (10 seconds back) =====
+        rewindBtn.addEventListener('click', () => {
+            audio.currentTime = Math.max(0, audio.currentTime - 10);
+        });
+
+        // ===== FORWARD BUTTON (10 seconds forward) =====
+        forwardBtn.addEventListener('click', () => {
+            audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+        });
+
+        // ===== TIMELINE UPDATE =====
+        audio.addEventListener('timeupdate', () => {
+            if (!isNaN(audio.duration)) {
+                timeline.max = audio.duration;
+                timeline.value = audio.currentTime;
+                currentTimeDisplay.textContent = formatTime(audio.currentTime);
+            }
+        });
+
+        // ===== TIMELINE SEEK =====
+        timeline.addEventListener('input', () => {
+            audio.currentTime = timeline.value;
+        });
+
+        // ===== AUDIO METADATA LOADED =====
+        audio.addEventListener('loadedmetadata', () => {
+            totalTimeDisplay.textContent = formatTime(audio.duration);
+            timeline.max = audio.duration;
+        });
+
+        // ===== PLAY/PAUSE STATE =====
+        audio.addEventListener('play', () => {
+            updatePlayPauseButton();
+            updateActiveCard();
+        });
+
+        audio.addEventListener('pause', () => {
+            updatePlayPauseButton();
+        });
+
+        // ===== AUDIO ENDED =====
+        audio.addEventListener('ended', () => {
+            updatePlayPauseButton();
+            timeline.value = 0;
+            currentTimeDisplay.textContent = '0:00';
+        });
+
+        // ===== ERROR HANDLING =====
+        audio.addEventListener('error', (e) => {
+            alert('Failed to load audio file. Please check that the audio files are in the "./audio/" folder.');
+            playPauseBtn.textContent = '▶️';
+        });
+
+        // ===== KEYBOARD SHORTCUTS =====
+        document.addEventListener('keydown', (e) => {
+            if (!currentCardId) return;
+
+            switch (e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    playPauseBtn.click();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    rewindBtn.click();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    forwardBtn.click();
+                    break;
+            }
+        });
+    </script>
+
+</body>
+
+</html>
